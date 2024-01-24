@@ -10,3 +10,12 @@ class Settings:
         # knight settings
         self.knight_speed = 1.5
 
+        # pike settings
+        self.pike_speed = 1.0
+        self.pike_width = 2
+        self.pike_height = 10
+        self.pike_color = (50, 50 ,50)
+        self.pikes_allowed = 5
+        
+        
+
