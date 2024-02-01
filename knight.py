@@ -10,7 +10,7 @@ class Knight:
         # load image of knight and get its rect
         self.image = pg.transform.scale(pg.image.load(
             'images/knight.bmp'),
-            (20, 16)
+            (30, 24)
         )
         self.rect = self.image.get_rect()
 
@@ -39,3 +39,7 @@ class Knight:
     def blitme(self):
         # draw knight at his location
         self.screen.blit(self.image, self.rect)
+
+    def center_knight(self):
+        self.rect.midbottom = self.screen_rect.midbottom
+        self.x = float(self.rect.x)

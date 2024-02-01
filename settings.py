@@ -9,13 +9,21 @@ class Settings:
 
         # knight settings
         self.knight_speed = 1.5
+        self.knight_limit = 3
 
         # pike settings
-        self.pike_speed = 1.0
-        self.pike_width = 2
-        self.pike_height = 10
+        self.pike_speed = 1.5
+        self.pike_width = 5
+        self.pike_height = 20
         self.pike_color = (50, 50 ,50)
         self.pikes_allowed = 5
+
+        # wolf settings
+        self.wolf_speed = 1.0
+        self.wolfs_drop_speed = 10
+        # +1 - right, - 1 - left
+        self.horde_direction = 1
+
         
         
 

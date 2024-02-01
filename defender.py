@@ -1,8 +1,11 @@
 import sys
+from time import sleep
 import pygame as pg
 from settings import Settings
 from knight import Knight
 from pike import Pike
+from enemy import Enemy
+from stats import GameStats
 
 class Defender:
     """class for game assets and behaviour"""
@@ -15,23 +18,30 @@ class Defender:
         )
         pg.display.set_caption('Defender')
 
+        self.stats = GameStats(self)
         self.knight = Knight(self)
         self.pikes = pg.sprite.Group()
+        self.enemies = pg.sprite.Group()
+        self.wolfs = pg.sprite.Group()
+
+        self.create_horde()
         
 
     def run_game(self):
         """start game"""
         while True:
             self.check_events()
-            self.knight.update()
-            self.update_pikes()
             
+            if self.stats.game_active:
+                self.knight.update()
+                self.update_pikes()
+                self.update_wolfs()
+
             print(len(self.pikes))
 
-            
             self.update_screen()
             
-
+    
     def check_events(self):
         # watch for events from keyboard and mouse
         for event in pg.event.get():
@@ -72,7 +82,96 @@ class Defender:
             if pike.rect.bottom <= 0:
                 self.pikes.remove(pike)
 
+        self.check_pikes_wolfs_collisions()
 
+        
+        
+        
+
+    def check_pikes_wolfs_collisions(self):
+        # check collisions pikes with wolfs
+        collisions = pg.sprite.groupcollide(self.pikes, self.enemies, True, True)
+
+        if not self.enemies:
+            # destroy left pikes and create new horde
+            self.pikes.empty()
+            self.create_horde()
+    
+    def knight_hit(self):
+        
+        if self.stats.knights_left > 0:
+            # decrease num of lifes left
+            self.stats.knights_left -= 1
+            # delete all remaining pikes and wolfs
+            self.enemies.empty()
+            self.pikes.empty()
+
+            # create new horde of wolfs and knight
+            self.create_horde()
+            self.knight.center_knight()
+
+            sleep(0.5)
+        else:
+            self.stats.game_active = False
+
+
+    def check_wolfs_bottom(self):
+        # check if wolfs reach bottom of the screen
+        screen_rect = self.screen.get_rect()
+        for wolf in self.enemies.sprites():
+            if wolf.rect.bottom >= screen_rect.bottom:
+                # treat as knight was hit
+                self.knight_hit()
+                break
+
+
+    def update_wolfs(self):
+        #  check position of each wolf regarding the edge of screen, then update the position
+        self.check_horde_edges()
+        self.enemies.update()
+        if pg.sprite.spritecollideany(self.knight, self.enemies):
+            self.knight_hit()
+
+        # looking for wolfs hitting bottom
+        self.check_wolfs_bottom()
+
+
+    def create_horde(self):
+        # create horde of wolves
+        wolf = Enemy(self)
+        wolf_width, wolf_height = wolf.rect.size
+        avilable_space_x = self.settings.screen_width - (2 * wolf_width)
+        number_wolfs_x = avilable_space_x // (2 * wolf_width)
+        
+        # determine number of rows
+        knight_height = self.knight.rect.height
+        avilable_space_y = (self.settings.screen_height - (3 * wolf_height) - knight_height)
+        number_rows = avilable_space_y // (2 * knight_height)
+
+        # create full horde
+        for row_num in range(number_rows):
+            for wolf_num in range(number_wolfs_x):
+                self.create_wolf(wolf_num, row_num)
+           
+
+    def create_wolf(self, wolf_num, row_num):
+        wolf = Enemy(self)
+        wolf_width, wolf_height = wolf.rect.size
+        wolf.x = wolf_width + 2 * wolf_width * wolf_num
+        wolf.rect.x = wolf.x
+        wolf.rect.y = wolf.rect.height + 2 * wolf.rect.height * row_num
+        self.enemies.add(wolf)
+
+    def check_horde_edges(self):
+        for wolf in self.enemies.sprites():
+            if wolf.check_edges():
+                self.change_horde_direction()
+                break
+
+    def change_horde_direction(self):
+        for wolf in self.enemies.sprites():
+            wolf.rect.y += self.settings.wolfs_drop_speed
+        self.settings.horde_direction *= -1
 
 
     def update_screen(self):
@@ -81,9 +180,12 @@ class Defender:
         self.knight.blitme()
         for pike in self.pikes.sprites():
             pike.draw_pike()
+        self.enemies.draw(self.screen)
 
         # rmost ecently drawn screen
         pg.display.flip()
+
+    
 
 if __name__ == '__main__':
     # run the game
