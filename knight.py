@@ -1,8 +1,10 @@
 import pygame as pg
+from pygame.sprite import Sprite
 
-class Knight:
+class Knight(Sprite):
     """class to manage knight"""
     def __init__(self, defender):
+        super().__init__()
         self.screen = defender.screen
         self.settings = defender.settings
         self.screen_rect = defender.screen.get_rect()

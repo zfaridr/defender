@@ -6,6 +6,8 @@ from knight import Knight
 from pike import Pike
 from enemy import Enemy
 from stats import GameStats
+from button import Button
+from scoreboard import Scoreboard
 
 class Defender:
     """class for game assets and behaviour"""
@@ -19,6 +21,7 @@ class Defender:
         pg.display.set_caption('Defender')
 
         self.stats = GameStats(self)
+        self.sb = Scoreboard(self)
         self.knight = Knight(self)
         self.pikes = pg.sprite.Group()
         self.enemies = pg.sprite.Group()
@@ -26,6 +29,8 @@ class Defender:
 
         self.create_horde()
         
+        # make play button
+        self.play_button = Button(self, 'Play')
 
     def run_game(self):
         """start game"""
@@ -52,6 +57,30 @@ class Defender:
                              
             elif event.type == pg.KEYUP:
                 self.check_keyup_event(event)
+            elif event.type == pg.MOUSEBUTTONDOWN:
+                mouse_pos = pg.mouse.get_pos()
+                self.check_play_button(mouse_pos)
+    
+    def check_play_button(self, mouse_pos):
+        button_clicked = self.play_button.rect.collidepoint(mouse_pos)
+        if button_clicked and not self.stats.game_active:
+        # start new game when player click Play
+            self.settings.initialize_dynamic_settings()
+            self.stats.reset_stats()
+            self.stats.game_active = True
+            self.sb.prep_score()
+            self.sb.prep_level()
+            self.sb.prep_knights()
+            self.enemies.empty()
+            self.pikes.empty()
+
+            #  new horde and center knight
+            self.create_horde()
+            self.knight.center_knight()
+            
+            # hide mouse
+            pg.mouse.set_visible(False)
+
                     
     def check_keydown_event(self, event):
         if event.key == pg.K_RIGHT:
@@ -91,17 +120,28 @@ class Defender:
     def check_pikes_wolfs_collisions(self):
         # check collisions pikes with wolfs
         collisions = pg.sprite.groupcollide(self.pikes, self.enemies, True, True)
+        if collisions:
+            for wolf in collisions.values():
+                self.stats.score += self.settings.wolf_points * len(wolf)
+            self.sb.prep_score()
+            self.sb.check_high_score()
 
         if not self.enemies:
             # destroy left pikes and create new horde
             self.pikes.empty()
             self.create_horde()
+            self.settings.increase_speed()
+
+            #  increase level
+            self.stats.level += 1
+            self.sb.prep_level()
     
     def knight_hit(self):
         
         if self.stats.knights_left > 0:
             # decrease num of lifes left
             self.stats.knights_left -= 1
+            self.sb.prep_knights()
             # delete all remaining pikes and wolfs
             self.enemies.empty()
             self.pikes.empty()
@@ -113,6 +153,7 @@ class Defender:
             sleep(0.5)
         else:
             self.stats.game_active = False
+            pg.mouse.set_visible(True)
 
 
     def check_wolfs_bottom(self):
@@ -181,6 +222,12 @@ class Defender:
         for pike in self.pikes.sprites():
             pike.draw_pike()
         self.enemies.draw(self.screen)
+
+        self.sb.show_score()
+
+        # draw the play button
+        if not self.stats.game_active:
+            self.play_button.draw_button()
 
         # rmost ecently drawn screen
         pg.display.flip()
